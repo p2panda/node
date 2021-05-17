@@ -5,6 +5,7 @@ use p2panda_rs::atomic::{Entry as EntryUnsigned, Message, Validation};
 
 use crate::db::models::{Entry, Log};
 use crate::errors::Result;
+use crate::materializer::materialize;
 use crate::rpc::request::PublishEntryRequest;
 use crate::rpc::response::PublishEntryResponse;
 use crate::rpc::RpcApiState;
@@ -114,6 +115,16 @@ pub async fn publish_entry(
         &params.message_encoded,
         &params.message_encoded.hash(),
         &entry.seq_num(),
+    )
+    .await?;
+
+    // Start materialization
+    materialize(
+        &pool,
+        &params.entry_encoded.hash(),
+        &entry.seq_num(),
+        &author,
+        &message,
     )
     .await?;
 
